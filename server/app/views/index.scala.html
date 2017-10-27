@@ -1,8 +1,15 @@
-@(message: String)
+@()(implicit r: Request[_])
+<!DOCTYPE html>
 
-@main("Play with Scala.js") {
-  @scalajs.html.scripts("client",
-    routes.Assets.versioned(_).toString,
-    name => getClass.getResource(s"/public/$name") != null)
-
-}
+<html>
+<head>
+    <title>Reactive Adapter Log Demo</title>
+    <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
+    <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
+</head>
+<body>
+    @scalajs.html.scripts("client",
+        routes.Assets.at(_).toString,
+        name => getClass.getResource(s"/public/$name") != null)
+</body>
+</html>
