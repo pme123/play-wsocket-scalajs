@@ -19,8 +19,9 @@ import scala.concurrent.{ExecutionContext, Future}
  * This class creates the actions and the websocket needed.
  */
 @Singleton
-class HomeController @Inject()(@Named("userParentActor") userParentActor: ActorRef,
-                               cc: ControllerComponents)
+class HomeController @Inject()(@Named("userParentActor") userParentActor: ActorRef
+                               , cc: ControllerComponents
+                               , assetsFinder: AssetsFinder)
                               (implicit ec: ExecutionContext)
   extends AbstractController(cc) with SameOriginCheck {
 
@@ -28,7 +29,7 @@ class HomeController @Inject()(@Named("userParentActor") userParentActor: ActorR
 
   // Home page that renders template
   def index = Action { implicit request: Request[AnyContent] =>
-    Ok(views.html.index())
+    Ok(views.html.index(assetsFinder))
   }
 
   /**

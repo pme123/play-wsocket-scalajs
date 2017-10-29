@@ -1,13 +1,21 @@
-@()(implicit r: Request[_])
+@(assets: AssetsFinder)(implicit r: Request[_])
 <!DOCTYPE html>
 
 <html>
 <head>
     <title>Reactive Adapter Log Demo</title>
     <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
-    <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
+    <link rel="shortcut icon" type="image/png" href="@assets.path("images/favicon.png")">
 </head>
 <body>
+    <div class="body-panel">
+        <div class="header-panel">
+            <img class="header-img" src="@assets.path("images/favicon.png")">
+            Adapter Websocket Demo
+        </div>
+        <div id="adapter-client">
+        </div>
+    </div>
     @scalajs.html.scripts("client",
         routes.Assets.at(_).toString,
         name => getClass.getResource(s"/public/$name") != null)

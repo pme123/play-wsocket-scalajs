@@ -1,4 +1,4 @@
-lazy val scalaV = "2.12.2"
+lazy val scalaV = "2.12.4"
 
 resolvers += "jitpack" at "https://jitpack.io"
 

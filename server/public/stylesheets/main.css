@@ -1,10 +1,98 @@
+body, .body-panel {
+    font-size: medium;
+    font-family: "Lucida Grande", Helvetica, sans-serif;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
+.header-panel {
+    width: 100%;
+    height: 40px;
+    color: white;
+    background-color: darkgreen;
+    text-align: center;
+    font-size: x-large;
+    padding-top: 20px;
+}
+
+.header-img {
+    width: 25px;
+    position: absolute;
+    left: 20px;
+}
+
+.main-panel {
+    width: 700px;
+    height: calc(100% - 140px);
+    position: absolute;
+    top: 60px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.button-panel {
+    width: 100%;
+}
+
+button {
+    padding: 5px;
+    float: right;
+    font-weight: 600;
+    margin: 12px -22px 12px 32px;
+    color: white;
+    background-color: darkgreen;
+    border: none;
+}
+
+button:hover {
+    background-color: #00aacc;
+}
+
+button:disabled,
+button[disabled]{
+    background-color: #cccccc;
+}
+
+
 #log-panel {
-    overflow-y: scroll;
-    overflow-x: auto;
-    height: 500px;
-    width: 600px;
+    overflow: auto;
+    width: 100%;
+    height: 100%;
     border: solid 1px #babac5;
-    border-bottom-left-radius: 20px;
-    border-top-left-radius: 20px;
     padding: 10px;
 }
+
+.log-level {
+    width: 70px;
+    float: left;
+}
+
+.last-level {
+    float: left;
+    padding: 14px;
+    font-weight: 600;
+}
+
+.log-msg {
+    width: calc(100% - 70px);
+    float: right;
+}
+.DEBUG {
+    color: grey;
+}
+.INFO {
+    color: black;
+}
+.WARN {
+    color: darkgoldenrod;
+}
+.ERROR {
+    color: darkred;
+}
+
+
+

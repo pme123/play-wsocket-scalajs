@@ -9,6 +9,7 @@ import shared._
 
 import scala.language.implicitConversions
 import scala.scalajs.js
+import scala.scalajs.js.timers.setTimeout
 
 object AdapterClient extends js.JSApp {
 
@@ -21,11 +22,13 @@ object AdapterClient extends js.JSApp {
 
   private val logData = Vars[LogEntry]()
   private val isRunning = Var[Boolean](false)
+  private val lastLogLevel = Var[Option[LogLevel]](None)
 
-  private lazy val echo = s"ws://${window.location.host}/ws"
-  private lazy val socket = new WebSocket(echo)
+  private lazy val wsURL = s"ws://${window.location.host}/ws"
+  private var socket: WebSocket = _
 
-  private def websocket() {
+  private def connectWS() {
+    socket = new WebSocket(wsURL)
     socket.onmessage = {
       (e: MessageEvent) =>
         val message = Json.parse(e.data.toString)
@@ -37,30 +40,34 @@ object AdapterClient extends js.JSApp {
           case JsSuccess(AdapterNotRunning(logReport), _) =>
             println(s"Adapter NOT running")
             isRunning.value = false
-            addLogEntries(logReport)
-
+            lastLogLevel.value = logReport.map(_.maxLevel())
+            logReport.foreach(addLogEntries)
           case JsSuccess(LogEntryMsg(le), _) =>
-            println(s"Adapter LogEntry: ${le.level}")
             isRunning.value = true
             addLogEntry(le)
-
-          case JsSuccess(RunFinished, _) =>
-            println("RunFinished")
+          case JsSuccess(RunFinished(logReport), _) =>
+            println("Run Finished")
             isRunning.value = false
-
-          case JsSuccess(other, _) => println(s"Other message: $other")
-          case JsError(errors) => errors foreach println
+            lastLogLevel.value = Some(logReport.maxLevel())
+          case JsSuccess(other, _) =>
+            println(s"Other message: $other")
+          case JsError(errors) =>
+            errors foreach println
         }
-
-
+    }
+    socket.onerror = { (e: ErrorEvent) =>
+      println(s"exception with websocket: ${e.message}!")
+      socket.close(0, e.message)
     }
     socket.onopen = { (e: Event) =>
       println("websocket open!")
       logData.value.clear()
     }
-    socket.onclose = {
-      (e: CloseEvent) =>
-        println("closed socket" + e.reason)
+    socket.onclose = { (e: CloseEvent) =>
+      println("closed socket" + e.reason)
+      setTimeout(1000) {
+        connectWS() // try to reconnect automatically
+      }
     }
   }
 
@@ -81,10 +88,10 @@ object AdapterClient extends js.JSApp {
   @dom
   private def logEntry(entry: LogEntry) =
     <div>
-      <div>
+      <div class={s"log-level ${entry.level.toString}"}>
         {entry.level.toString}
       </div>
-      <div>
+      <div class="log-msg">
         {entry.msg}
       </div>
     </div>
@@ -92,17 +99,25 @@ object AdapterClient extends js.JSApp {
   @dom
   private def render = {
     val runDisabled = isRunning.bind
-    println("render logEntries")
-    <div>
-      <button onclick={event: Event => runAdapter()} disabled={runDisabled}>
+    val logLevel = lastLogLevel.bind
+    <div class="main-panel">
+      <div class="button-panel">
+        {lastLevel(logLevel.getOrElse("Not run!").toString).bind}<button onclick={event: Event => runAdapter()} disabled={runDisabled}>
         Run Adapter
       </button>
-      <button onclick={event: Event => logData.value.clear()}>
-        Clear Console
-      </button>{renderLogEntries.bind}
+        <button onclick={event: Event => logData.value.clear()}>
+          Clear Console
+        </button>
+      </div>{renderLogEntries.bind}
     </div>
   }
 
+  @dom
+  private def lastLevel(lastLevel: String) = {
+    <div class={"last-level " + lastLevel}>
+      {"Log level last Adapter Process: " + lastLevel}
+    </div>
+  }
   @dom
   private def renderLogEntries = {
     val logEntries = logData.bind
@@ -112,7 +127,7 @@ object AdapterClient extends js.JSApp {
   }
 
   def main(): Unit = {
-    dom.render(document.body, render)
-    websocket() // initial population
+    dom.render(document.getElementById("adapter-client"), render)
+    connectWS() // initial population
   }
 }

@@ -49,11 +49,11 @@ case class LogService(name: String, initiator: String)
   }
 
   def stopLogging(): LogEntry = {
-    info(s"Import $name took ${Instant.now.toEpochMilli - instant.toEpochMilli} ms.")
+    info(s"$name took ${Instant.now.toEpochMilli - instant.toEpochMilli} ms.")
   }
 
   def stopLogging(clientId: String): LogEntry = {
-    info(s"Import $name for $clientId took ${Instant.now.toEpochMilli - instant.toEpochMilli} ms.")
+    info(s"$name for $clientId took ${Instant.now.toEpochMilli - instant.toEpochMilli} ms.")
   }
 
 }

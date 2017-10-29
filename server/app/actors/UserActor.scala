@@ -5,7 +5,6 @@ import javax.inject._
 import actors.UserActor.CreateAdapter
 import akka.actor._
 import akka.event.{LogMarker, MarkerLoggingAdapter}
-import akka.pattern.ask
 import akka.stream._
 import akka.stream.scaladsl._
 import akka.util.Timeout
@@ -35,6 +34,8 @@ class UserActor @Inject()(@Assisted id: String, @Named("adapterActor") adapterAc
 
   implicit val timeout = Timeout(50.millis)
 
+  var clientId = "NOT_SET"
+
   val (hubSink, hubSource) = MergeHub.source[JsValue](perProducerBufferSize = 16)
     .toMat(BroadcastHub.sink(bufferSize = 256))(Keep.both)
     .run()
@@ -55,15 +56,17 @@ class UserActor @Inject()(@Assisted id: String, @Named("adapterActor") adapterAc
 
   // If this actor is killed directly, stop anything that we started running explicitly.
   override def postStop(): Unit = {
-    log.info(marker, s"Stopping actor $self")
+    log.info(marker, s"Stopping $clientId: actor $self")
+    adapterActor ! UnSubscribeAdapter(clientId)
   }
 
   /**
     * The receive block, useful if other actors want to manipulate the flow.
     */
   override def receive: Receive = {
-    case CreateAdapter(clientId) =>
-      log.info(s"asked for AdapterStatus")
+    case CreateAdapter(cId) =>
+      clientId = cId
+      log.info(s"asked for AdapterStatus for $clientId")
       adapterActor ! SubscribeAdapter(clientId, wsActor())
 
       sender() ! websocketFlow
@@ -108,7 +111,9 @@ class UserActor @Inject()(@Assisted id: String, @Named("adapterActor") adapterAc
 
     // Set up a complete runnable graph from the stock source to the hub's sink
     Flow[AdapterMsg]
-      .keepAlive(1.minute, () => KeepAliveMsg)
+      .keepAlive(1.minute, () => {
+        KeepAliveMsg
+      })
       .map(Json.toJson[AdapterMsg])
       .to(hubSink)
       .runWith(historySource)

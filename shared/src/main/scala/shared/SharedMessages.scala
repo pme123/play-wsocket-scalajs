@@ -17,14 +17,10 @@ object RunAdapter {
 
 case class AdapterRunning(logReport: LogReport) extends AdapterMsg
 
-case class AdapterNotRunning(logReport: LogReport) extends AdapterMsg
-
-object AdapterRunning {
-  implicit val jsonFormat: OFormat[AdapterRunning] = derived.oformat[AdapterRunning]()
-}
+case class AdapterNotRunning(logReport: Option[LogReport]) extends AdapterMsg
 
 case class LogEntryMsg(logEntry: LogEntry) extends AdapterMsg
 
-case object RunFinished extends AdapterMsg
+case class RunFinished(logReport: LogReport) extends AdapterMsg
 
 case object KeepAliveMsg extends AdapterMsg
