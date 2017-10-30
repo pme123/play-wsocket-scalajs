@@ -2,12 +2,11 @@ package log
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 
-import akka.actor.ActorSystem
-import akka.stream.{ActorMaterializer, Materializer}
+import akka.stream.Materializer
 import shared.LogLevel._
 import shared.{LogEntry, LogLevel, LogReport}
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import scala.concurrent.ExecutionContext
 
 /**
   * service that wraps the LogReport

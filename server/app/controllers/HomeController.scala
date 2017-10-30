@@ -16,8 +16,9 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * This class creates the actions and the websocket needed.
- */
+  * This class creates the actions and the websocket needed.
+  * Original see here: https://github.com/playframework/play-scala-websocket-example
+  */
 @Singleton
 class HomeController @Inject()(@Named("userParentActor") userParentActor: ActorRef
                                , cc: ControllerComponents
@@ -29,15 +30,16 @@ class HomeController @Inject()(@Named("userParentActor") userParentActor: ActorR
 
   // Home page that renders template
   def index = Action { implicit request: Request[AnyContent] =>
+    // uses the AssetsFinder API
     Ok(views.html.index(assetsFinder))
   }
 
   /**
-   * Creates a websocket.  `acceptOrResult` is preferable here because it returns a
-   * Future[Flow], which is required internally.
-   *
-   * @return a fully realized websocket.
-   */
+    * Creates a websocket.  `acceptOrResult` is preferable here because it returns a
+    * Future[Flow], which is required internally.
+    *
+    * @return a fully realized websocket.
+    */
   def ws: WebSocket = WebSocket.acceptOrResult[JsValue, JsValue] {
     case rh if sameOriginCheck(rh) =>
       wsFutureFlow(rh).map { flow =>
@@ -51,18 +53,18 @@ class HomeController @Inject()(@Named("userParentActor") userParentActor: ActorR
       }
 
     case rejected =>
-      logger.error(s"Request ${rejected} failed same origin check")
+      logger.error(s"Request $rejected failed same origin check")
       Future.successful {
         Left(Forbidden("forbidden"))
       }
   }
 
   /**
-   * Creates a Future containing a Flow of JsValue in and out.
-   */
+    * Creates a Future containing a Flow of JsValue in and out.
+    */
   private def wsFutureFlow(request: RequestHeader): Future[Flow[JsValue, JsValue, NotUsed]] = {
     // Use guice assisted injection to instantiate and configure the child actor.
-    implicit val timeout = Timeout(1.second) // the first run in dev can take a while :-(
+    implicit val timeout: Timeout = Timeout(1.second) // the first run in dev can take a while :-(
     val future: Future[Any] = userParentActor ? UserParentActor.Create(request.id.toString)
     val futureFlow: Future[Flow[JsValue, JsValue, NotUsed]] = future.mapTo[Flow[JsValue, JsValue, NotUsed]]
     futureFlow
@@ -75,12 +77,12 @@ trait SameOriginCheck {
   def logger: Logger
 
   /**
-   * Checks that the WebSocket comes from the same origin.  This is necessary to protect
-   * against Cross-Site WebSocket Hijacking as WebSocket does not implement Same Origin Policy.
-   *
-   * See https://tools.ietf.org/html/rfc6455#section-1.3 and
-   * http://blog.dewhurstsecurity.com/2013/08/30/security-testing-html5-websockets.html
-   */
+    * Checks that the WebSocket comes from the same origin.  This is necessary to protect
+    * against Cross-Site WebSocket Hijacking as WebSocket does not implement Same Origin Policy.
+    *
+    * See https://tools.ietf.org/html/rfc6455#section-1.3 and
+    * http://blog.dewhurstsecurity.com/2013/08/30/security-testing-html5-websockets.html
+    */
   def sameOriginCheck(rh: RequestHeader): Boolean = {
     rh.headers.get("Origin") match {
       case Some(originValue) if originMatches(originValue) =>
@@ -88,7 +90,7 @@ trait SameOriginCheck {
         true
 
       case Some(badOrigin) =>
-        logger.error(s"originCheck: rejecting request because Origin header value ${badOrigin} is not in the same origin")
+        logger.error(s"originCheck: rejecting request because Origin header value $badOrigin is not in the same origin")
         false
 
       case None =>
@@ -98,10 +100,10 @@ trait SameOriginCheck {
   }
 
   /**
-   * Returns true if the value of the Origin header contains an acceptable value.
-   *
-   * This is probably better done through configuration same as the allowedhosts filter.
-   */
+    * Returns true if the value of the Origin header contains an acceptable value.
+    *
+    * This is probably better done through configuration same as the allowedhosts filter.
+    */
   def originMatches(origin: String): Boolean = {
     origin.contains("localhost:9000") || origin.contains("localhost:19001")
   }

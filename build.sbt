@@ -1,4 +1,4 @@
-lazy val scalaV = "2.12.4"
+lazy val scalaV = "2.12.2"
 
 resolvers += "jitpack" at "https://jitpack.io"
 
@@ -8,7 +8,7 @@ lazy val server = (project in file("server")).settings(
   pipelineStages in Assets := Seq(scalaJSPipeline),
   pipelineStages := Seq(digest, gzip),
   // triggers scalaJSPipeline when using compile or continuous compilation
-  compile in Compile <<= (compile in Compile) dependsOn scalaJSPipeline,
+  compile in Compile := ((compile in Compile) dependsOn scalaJSPipeline).value,
   libraryDependencies ++= Seq(
     "com.vmunier" %% "scalajs-scripts" % "1.1.1",
     guice,
@@ -31,14 +31,13 @@ lazy val client = (project in file("client")).settings(
  // jsDependencies += "org.webjars" % "flot" % "0.8.3" / "flot.js" minified "flot.min.js",
  // jsDependencies += "org.webjars" % "bootstrap" % "3.3.6" / "bootstrap.js" minified "bootstrap.min.js",
   libraryDependencies ++= Seq(
-    "org.scala-js" %%% "scalajs-dom" % "0.9.1",
+    "org.scala-js" %%% "scalajs-dom" % "0.9.3",
     "org.scala-lang.modules" %% "scala-xml" % "1.0.6",
     "com.typesafe.play" %%% "play-json" % "2.6.1",
     "com.thoughtworks.binding" %%% "dom" % "11.0.0-M4",
     "com.thoughtworks.binding" %%% "futurebinding" % "11.0.0-M4",
     "fr.hmil" %%% "roshttp" % "2.0.2",
     "org.scala-js" %%% "scalajs-java-time" % "0.2.2"
-   // "com.github.fancellu" % "scalajs-flot_sjs0.6_2.11" % "0.4"
   )
 ).enablePlugins(ScalaJSPlugin, ScalaJSWeb).
   dependsOn(sharedJs)

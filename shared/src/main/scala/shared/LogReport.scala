@@ -8,13 +8,14 @@ import scala.collection.mutable
 
 /**
   * <pre/>
-  * Created by pascal.mengelt on 13.03.2015.
   * This allows to add LogEntries during execution. So in the end you have an ordered Sequence of LogEntries.
   * Important Functions:
-  * +    - add a LogEntry
-  * ++   - add all LogEntries of another LogReport
+  * +    add a LogEntry
+  * ++   add all LogEntries of another LogReport
   */
-case class LogReport(initiator: String, logEntries: mutable.ListBuffer[LogEntry] = mutable.ListBuffer.empty[LogEntry]) extends Logger {
+case class LogReport(initiator: String
+                     , logEntries: mutable.ListBuffer[LogEntry] = mutable.ListBuffer.empty[LogEntry])
+  extends Logger {
 
   def logEntriesFor(logLevel: LogLevel): Seq[LogEntry] = logEntries.filter(le => le.level == logLevel)
 

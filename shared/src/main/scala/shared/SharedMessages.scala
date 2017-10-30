@@ -3,17 +3,19 @@ package shared
 import julienrf.json.derived
 import play.api.libs.json.OFormat
 
+/**
+  * all needed messages for server-client communication.
+  */
 sealed trait AdapterMsg
 
 object AdapterMsg {
+  // marshalling and unmarshalling
+  // with json.validate[AdapterMsg] or Json.parse(adapterMsg)
+  // this line is enough with this library - as AdapterMsg is a sealed trait
   implicit val jsonFormat: OFormat[AdapterMsg] = derived.oformat[AdapterMsg]()
 }
 
 case class RunAdapter(userName: String = "Anonymous") extends AdapterMsg
-
-object RunAdapter {
-  implicit val jsonFormat: OFormat[RunAdapter] = derived.oformat[RunAdapter]()
-}
 
 case class AdapterRunning(logReport: LogReport) extends AdapterMsg
 

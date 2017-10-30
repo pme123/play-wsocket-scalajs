@@ -13,10 +13,10 @@ import scala.scalajs.js.timers.setTimeout
 
 object AdapterClient extends js.JSApp {
 
-  implicit def makeIntellijHappy(x: scala.xml.Elem): Binding[HTMLElement] = ???
+  implicit def makeIntellijHappy(x: scala.xml.Elem): Binding[HTMLElement] = _
 
   private def runAdapter() {
-    println("runAdapter")
+    println("run Adapter")
     socket.send(Json.toJson(RunAdapter()).toString())
   }
 

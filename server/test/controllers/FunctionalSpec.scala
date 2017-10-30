@@ -10,11 +10,15 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.{Helpers, TestServer, WsTestClient}
 import org.awaitility.Awaitility._
 import play.api.libs.json._
+import shared.LogLevel.INFO
+import shared._
 
 import scala.compat.java8.FutureConverters
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
+// Original see here: https://github.com/playframework/play-scala-websocket-example
 class FunctionalSpec extends PlaySpec with ScalaFutures {
 
   "HomeController" should {
@@ -35,7 +39,7 @@ class FunctionalSpec extends PlaySpec with ScalaFutures {
           val listener = new WebSocketClient.LoggingListener(message => println(message))
           val completionStage = webSocketClient.call(serverURL, origin, listener)
           val f = FutureConverters.toScala(completionStage)
-          val result = Await.result(f, atMost = 1000 millis)
+          Await.result(f, atMost = 1000 millis)
           listener.getThrowable mustBe a[IllegalStateException]
         } catch {
           case e: IllegalStateException =>
@@ -68,11 +72,19 @@ class FunctionalSpec extends PlaySpec with ScalaFutures {
           await().until(() => webSocket.isOpen && queue.peek() != null)
           val input: String = queue.take()
           val json:JsValue = Json.parse(input)
-          val symbol = (json \ "symbol").as[String]
-          List(symbol) must contain oneOf("AAPL", "GOOG", "ORCL")
+          json.validate[AdapterMsg] match {
+            case JsSuccess(AdapterNotRunning(None), _) => // ok
+            case other => fail(s"Unexpected result: $other")
+          }
+          // run Adapter
+          webSocket.sendMessage(Json.toJson(RunAdapter("tester")).toString())
+          Json.parse(queue.take()).validate[AdapterMsg] match {
+            case JsSuccess(LogEntryMsg(LogEntry(INFO, msg, None)), _) => // ok
+              msg must startWith("Demo Adapter Process started at ")
+            case other => fail(s"Unexpected result: $other")
+          }
         }
       }
     }
   }
-
 }
