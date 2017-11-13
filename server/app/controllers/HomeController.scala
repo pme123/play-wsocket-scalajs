@@ -8,7 +8,7 @@ import akka.actor._
 import akka.pattern.ask
 import akka.stream.scaladsl._
 import akka.util.Timeout
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import play.api.libs.json._
 import play.api.mvc._
 
@@ -22,7 +22,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class HomeController @Inject()(@Named("userParentActor") userParentActor: ActorRef
                                , cc: ControllerComponents
-                               , assetsFinder: AssetsFinder)
+                               , assetsFinder: AssetsFinder
+                               , val config: Configuration)
                               (implicit ec: ExecutionContext)
   extends AbstractController(cc) with SameOriginCheck {
 
@@ -76,6 +77,8 @@ trait SameOriginCheck {
 
   def logger: Logger
 
+  def config: Configuration
+
   /**
     * Checks that the WebSocket comes from the same origin.  This is necessary to protect
     * against Cross-Site WebSocket Hijacking as WebSocket does not implement Same Origin Policy.
@@ -102,10 +105,13 @@ trait SameOriginCheck {
   /**
     * Returns true if the value of the Origin header contains an acceptable value.
     *
-    * This is probably better done through configuration same as the allowedhosts filter.
+    * see application.conf: wsocket.hosts.allowed for a description.
     */
   def originMatches(origin: String): Boolean = {
-    origin.contains("localhost:9000") || origin.contains("localhost:19001")
+    import scala.collection.JavaConverters._
+
+    val allowedHosts = config.underlying.getStringList("wsocket.hosts.allowed").asScala
+    allowedHosts.exists(origin.endsWith)
   }
 
 }

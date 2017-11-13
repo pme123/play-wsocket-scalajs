@@ -28,27 +28,27 @@ class AdapterActor @Inject()(implicit mat: Materializer, ec: ExecutionContext)
   private var isRunning = false
 
   // a map with all clients (Websocket-Actor) that needs the status about the process
-  private val clientActors: mutable.Map[String, ActorRef] = mutable.Map()
+  private val userActors: mutable.Map[String, ActorRef] = mutable.Map()
 
   def receive = LoggingReceive {
-    // subscribe a client with its id and its websocket-Actor
-    // this is called when the websocket for a client is created
-    case SubscribeAdapter(clientId, wsActor) =>
-      log.info(s"Subscribed Client: $clientId")
-      val aRef = clientActors.getOrElseUpdate(clientId, wsActor)
+    // subscribe a user with its id and its websocket-Actor
+    // this is called when the websocket for a user is created
+    case SubscribeAdapter(userId, wsActor) =>
+      log.info(s"Subscribed User: $userId")
+      val aRef = userActors.getOrElseUpdate(userId, wsActor)
       val status =
         if (isRunning)
           AdapterRunning(logService.logReport)
         else
           AdapterNotRunning(if (logService != null) Some(logService.logReport) else None)
-      // inform the client about the actual status
+      // inform the user about the actual status
       aRef ! status
-    // Unsubscribe a client(remove from the map)
-    // this is called when the connection from a client websocket is closed
-    case UnSubscribeAdapter(clientId) =>
-      log.info(s"Unsubscribe Client: $clientId")
-      clientActors -= clientId
-    // called if a client runs the Adapter Process (Button)
+    // Unsubscribe a user(remove from the map)
+    // this is called when the connection from a user websocket is closed
+    case UnSubscribeAdapter(userId) =>
+      log.info(s"Unsubscribe User: $userId")
+      userActors -= userId
+    // called if a user runs the Adapter Process (Button)
     case RunAdapter(user) =>
       log.info(s"called runAdapter: $user")
       if (isRunning) // this should not happen as the button is disabled, if running
@@ -82,16 +82,16 @@ class AdapterActor @Inject()(implicit mat: Materializer, ec: ExecutionContext)
   private def sendToSubscriber(logEntry: LogEntry): Unit =
     sendToSubscriber(LogEntryMsg(logEntry))
 
-  // sends an AdapterMsg to all subscribed clients
+  // sends an AdapterMsg to all subscribed users
   private def sendToSubscriber(adapterMsg: AdapterMsg): Unit =
-    clientActors.values
+    userActors.values
       .foreach(_ ! adapterMsg)
 }
 
 object AdapterActor {
 
-  case class SubscribeAdapter(clientId: String, wsActor: ActorRef)
+  case class SubscribeAdapter(userId: String, wsActor: ActorRef)
 
-  case class UnSubscribeAdapter(clientId: String)
+  case class UnSubscribeAdapter(userId: String)
 
 }
