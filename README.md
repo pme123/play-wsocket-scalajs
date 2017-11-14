@@ -17,11 +17,13 @@ But it should run only once at a time.
 So only one actor (AdapterActor) will run the process and make sure, 
 that the process is only run once at a time.
 
-The web-sockets are created according to the 
-[Lightbend's Websocket example](https://github.com/playframework/play-scala-websocket-example).
-
 Each client sees the LogEntries of the last 'Adapter process' (LogReport) - 
 or if the process is running - each LogEntry right away.
+
+![play-wsocket-scalajs](https://user-images.githubusercontent.com/3437927/32768876-ec1a891c-c919-11e7-8a64-ec32a1cdc1cc.gif)
+
+The web-sockets are created according to the 
+[Lightbend's Websocket example](https://github.com/playframework/play-scala-websocket-example).
 
 ## Shared
 The great thing about a **full-stack Scala app** is that 
