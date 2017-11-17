@@ -1,6 +1,7 @@
-lazy val scalaV = "2.12.2"
+// (5) shadow sbt-scalajs' crossProject and CrossType until Scala.js 1.0.0 is released
+import sbtcrossproject.{crossProject, CrossType}
 
-resolvers += "jitpack" at "https://jitpack.io"
+lazy val scalaV = "2.12.2"
 
 lazy val server = (project in file("server")).settings(
   scalaVersion := scalaV,
@@ -39,15 +40,18 @@ lazy val client = (project in file("client")).settings(
     "fr.hmil" %%% "roshttp" % "2.0.2",
     "org.scala-js" %%% "scalajs-java-time" % "0.2.2"
   )
-).enablePlugins(ScalaJSPlugin, ScalaJSWeb).
+).enablePlugins(ScalaJSWeb).
   dependsOn(sharedJs)
 
-lazy val shared = (crossProject.crossType(CrossType.Pure) in file("shared"))
+lazy val shared = crossProject(JSPlatform, JVMPlatform)
+  .crossType(CrossType.Pure)
   .settings(scalaVersion := scalaV
     , libraryDependencies ++= Seq(
       "org.julienrf" %%% "play-json-derived-codecs" % "4.0.0"
       , "biz.enef" %%% "slogging" % "0.6.0"
     ))
+  .jsSettings(/* ... */) // defined in sbt-scalajs-crossproject
+  .jvmSettings(/* ... */)
   .jsConfigure(_ enablePlugins ScalaJSWeb)
 
 lazy val sharedJvm = shared.jvm
