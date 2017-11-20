@@ -49,7 +49,7 @@ case class ClientWebsocket(uiState: UIState)
     }
     socket.onopen = { (e: Event) =>
       println("websocket open!")
-      dispatch(CLEAR_LOG_ENTRIES)
+      append(CLEAR_LOG_ENTRIES)
     }
     socket.onclose = { (e: CloseEvent) =>
       println("closed socket" + e.reason)
@@ -65,11 +65,11 @@ case class ClientWebsocket(uiState: UIState)
   }
 
   private def changeAdapterRunning(running: Boolean) {
-    dispatch(StoreAction(CHANGE_ADAPTER_RUNNING, Some(running)))
+    append(StoreAction(CHANGE_ADAPTER_RUNNING, Some(running)))
   }
 
   private def changeLastLogLevel(logReport: LogReport) {
-    dispatch(StoreAction(CHANGE_LAST_LOG_LEVEL, Some(logReport.maxLevel())))
+    append(StoreAction(CHANGE_LAST_LOG_LEVEL, Some(logReport.maxLevel())))
   }
 
   private def addLogEntries(logReport: LogReport) {
@@ -77,7 +77,7 @@ case class ClientWebsocket(uiState: UIState)
   }
 
   private def addLogEntry(logEntry: LogEntry) {
-    dispatch(StoreAction(ADD_LOG_ENTRY, Some(logEntry)))
+    append(StoreAction(ADD_LOG_ENTRY, Some(logEntry)))
 
     val objDiv = document.getElementById("log-panel")
     objDiv.scrollTop = objDiv.scrollHeight - 20

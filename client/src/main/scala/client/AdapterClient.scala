@@ -1,7 +1,7 @@
 package client
 
 import client.UIStore._
-import com.thoughtworks.binding.Binding.{Constants, Var, Vars}
+import com.thoughtworks.binding.Binding.Constants
 import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.document
 import org.scalajs.dom.raw._
@@ -90,7 +90,7 @@ object AdapterClient
                type="text"
                placeholder="Filter..."
                onkeyup={_: Event =>
-                 dispatch(StoreAction(CHANGE_FILTER_TEXT
+                 append(StoreAction(CHANGE_FILTER_TEXT
                    , Some(s"${filterInput.value}")))}>
         </input>
       </div>
@@ -109,7 +109,7 @@ object AdapterClient
       <select id="filterSelect"
               class="ui compact dropdown"
               onchange={_: Event =>
-                dispatch(StoreAction(CHANGE_FILTER_LEVEL
+                append(StoreAction(CHANGE_FILTER_LEVEL
                   , LogLevel.fromLevel(s"${filterSelect.value}").toOption))}>
         <option value="ERROR">ERROR</option>
         <option value="WARN">WARN</option>
@@ -138,7 +138,7 @@ object AdapterClient
   private def clearButton = {
     <div class="ui item">
       <button class="ui basic icon button"
-              onclick={_: Event => dispatch(CLEAR_LOG_ENTRIES)}
+              onclick={_: Event => append(CLEAR_LOG_ENTRIES)}
               data:data-tooltip="Clear the console"
               data:data-position="bottom right">
         <i class="remove circle outline icon large"></i>
