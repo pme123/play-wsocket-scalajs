@@ -2,9 +2,11 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
-GET     /                           controllers.HomeController.index
-GET     /ws                         controllers.HomeController.ws
+GET        /                             controllers.HomeController.index
+GET        /ws                           controllers.HomeController.ws
 
 # prefix must match `play.assets.urlPrefix`
-GET /assets/*file           controllers.Assets.at(file)
-GET /versionedAssets/*file  controllers.Assets.versioned(file)
+GET        /assets/*file                 controllers.Assets.at(file)
+GET        /versionedAssets/*file        controllers.Assets.versioned(file)
+
+->         /webjars                      webjars.Routes

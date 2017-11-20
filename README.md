@@ -9,6 +9,8 @@ See the general setup on the starter kit page.
 This is an example application showing how you can integrate a Play project with a Scala.js, Binding.scala 
 project - using **Web Sockets**.
 
+It is my personal Starter Kit at the moment.
+
 ## Business Case
 
 It's about an automatic process that can be started manually (button). 
@@ -20,10 +22,18 @@ that the process is only run once at a time.
 Each client sees the LogEntries of the last 'Adapter process' (LogReport) - 
 or if the process is running - each LogEntry right away.
 
-![play-wsocket-scalajs](https://user-images.githubusercontent.com/3437927/32768876-ec1a891c-c919-11e7-8a64-ec32a1cdc1cc.gif)
+You can filter the LogEntries for their Level and/ or their message.
+
+![play-wsocket-scalajs](https://user-images.githubusercontent.com/3437927/33009370-eb51c8b2-cdd6-11e7-8753-383eebbcc191.gif)
+
+# Architecture
+- Server: Play with Scala
+- Client: Binding.scala with ScalaJS
 
 The web-sockets are created according to the 
 [Lightbend's Websocket example](https://github.com/playframework/play-scala-websocket-example).
+
+The project is split into 3 modules that are explained in the following chapters. 
 
 ## Shared
 The great thing about a **full-stack Scala app** is that 
@@ -72,12 +82,77 @@ case object KeepAliveMsg extends AdapterMsg
 The UI is done with 
 [Binding.scala](https://github.com/ThoughtWorksInc/Binding.scala)
 
-It is more or less HTML-snippets that contain dynamic content provided by Binding.scala:
-* `Vars[LogEntry]` a list of LogEntries that from the active- or last Adapter run.
-* `Var[Boolean]` is true if the Adapter process is running at the moment.
-* `Var[Option[LogLevel]]` the LogLevel of the last Adapter run - used for the title.
+The client is split in 3 classes:
+
+### AdapterClient
+The whole web page is here composed with `Binding.scala data-binding expressions`. 
+
+It is more or less HTML-snippets that contain dynamic content provided by `Binding.scala data sources`:
+
+* `logData: Vars[LogEntry]` a list of LogEntries that from the active- or last Adapter run.
+* `isRunning: Var[Boolean]` is true if the Adapter process is running at the moment.
+* `filterText: Var[String]` is the filter text from the input field.
+* `filterLevel: Var[LogLevel]` is the Level selected from the drop-down.
+* `lastLogLevel: Var[Option[LogLevel]]` the LogLevel of the last Adapter run - used for the title.
 
 If you have troubles understanding it, please check out [Binding.scala-Google-Maps](https://github.com/pme123/Binding.scala-Google-Maps), where I explained all the details.
+
+#### ScalaJS Routes
+To use Play routes from within the client, we need again something to do.
+My solution is taken from here: [github.com/vmunier/play-scalajs.g8](https://github.com/vmunier/play-scalajs.g8/issues/50)
+
+* build.sbt
+```scala
+  // Create a map of versioned assets, replacing the empty versioned.js
+  DigestKeys.indexPath := Some("javascripts/versioned.js"),
+  // Assign the asset index to a global versioned var
+  DigestKeys.indexWriter ~= { writer => index => s"var versioned = ${writer(index)};" }
+```
+* add `javascripts/versioned.js` to the `public` folder (contains only: `var versioned = {};)
+* add to the end of the `routes`-file `->         /webjars                      webjars.Routes`
+* now you can use them like `<img src={"" + g.jsRoutes.controllers.Assets.versioned("images/favicon.png").url}></img>`
+Don't forget `import scala.scalajs.js.Dynamic.{global => g}` 
+### ClientWebsocket
+Encapsulates the communication with the server. The internal communication with the AdapterClient
+is done via the `Binding.scala data sources`.
+
+### SemanticUI
+To have a decent look I integrated with [Semantic-UI](https://semantic-ui.com/usage/layout.html).
+
+The solution is based on this [blog](http://sadhen.com/blog/2017/01/02/binding-with-semantic.html).
+
+To do that we need to add the dependency with webjars:
+```scala
+// server
+    , "org.webjars" %% "webjars-play" % "2.6.1"
+    , "org.webjars" % "Semantic-UI" % semanticV
+    , "org.webjars" % "jquery" % jQueryV
+// client
+  jsDependencies ++= Seq(
+    "org.webjars" % "jquery" % jQueryV / "jquery.js" minified "jquery.min.js",
+    "org.webjars" % "Semantic-UI" % semanticV / "semantic.js" minified "semantic.min.js" dependsOn "jquery.js"
+  ),
+  ...
+     // jquery support for ScalaJS
+     "be.doeraene" %%% "scalajs-jquery" % "0.9.1"
+
+```
+Here is the documentation: [webjars.org](http://www.webjars.org/documentation)
+
+Monkey Patching: With Semantic-UI you sometimes you have activate the Javascript.
+
+see [correct-way-to-dynamically-add-semantic-ui-controls](http://stackoverflow.com/questions/30531410/correct-way-to-dynamically-add-semantic-ui-controls)
+
+```scala
+  @js.native
+  trait SemanticJQuery extends JQuery {
+    def dropdown(params: js.Any*): SemanticJQuery = js.native
+  }
+
+  implicit def jq2semantic(jq: JQuery): SemanticJQuery = jq.asInstanceOf[SemanticJQuery]
+```
+This is all - that is needed with ScalaJS. 
+Thanks to `implicit` Monkey Patching can be done in an elegant way with Scala.
 
 ## Server
 When you go to [http://localhost:9000](http://localhost:9000) 

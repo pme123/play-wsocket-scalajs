@@ -1,4 +1,6 @@
-@(assets: AssetsFinder)(implicit r: Request[_])
+@this(webJarsUtil: org.webjars.play.WebJarsUtil)
+@(assets: AssetsFinder)(implicit r: Request[_], rh: RequestHeader)
+
 <!DOCTYPE html>
 
 <html>
@@ -6,18 +8,24 @@
     <title>Reactive Adapter Log Demo</title>
     <link rel="stylesheet" media="screen" href="@assets.path("stylesheets/main.css")">
     <link rel="shortcut icon" type="image/png" href="@assets.path("images/favicon.png")">
+    @Html(webJarsUtil.css("semantic.min.css"))
+
+    <!-- for scalajs routing -->
+    @helper.javascriptRouter("jsRoutes")(routes.javascript.Assets.versioned)
+    <script src="@routes.Assets.versioned("javascripts/versioned.js")" type="text/javascript"></script>
+    <script type="text/javascript">
+            (function () {
+                var oldVersioned = jsRoutes.controllers.Assets.versioned;
+                jsRoutes.controllers.Assets.versioned = function (path) {
+                    return oldVersioned.apply(jsRoutes.controllers.Assets, [versioned[path] || path]);
+                };
+            })();
+    </script>
 </head>
 <body>
-    <div class="body-panel">
-        <div class="header-panel">
-            <img class="header-img" src="@assets.path("images/favicon.png")">
-            Reactive Adapter Log Demo
-        </div>
-        <div id="adapter-client">
-        </div>
-    </div>
     @scalajs.html.scripts("client",
         routes.Assets.at(_).toString,
         name => getClass.getResource(s"/public/$name") != null)
+
 </body>
 </html>
