@@ -1,5 +1,6 @@
 package client
 
+import client.UIStore._
 import com.thoughtworks.binding.Binding.{Constants, Var, Vars}
 import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.document
@@ -11,14 +12,13 @@ import scala.language.implicitConversions
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.{global => g}
 
-object AdapterClient extends js.JSApp {
+object AdapterClient
+  extends js.JSApp
+    with UIStore {
 
-  private val logData = Vars[LogEntry]()
-  private val isRunning = Var[Boolean](false)
-  private val filterText = Var[String]("")
-  private val filterLevel = Var[LogLevel](LogLevel.DEBUG)
-  private val lastLogLevel = Var[Option[LogLevel]](None)
-  private lazy val socket = ClientWebsocket(logData, isRunning, filterText, filterLevel, lastLogLevel)
+  val uiState = UIState()
+
+  private lazy val socket = ClientWebsocket(uiState)
 
   def main(): Unit = {
     dom.render(document.body, render)
@@ -54,7 +54,7 @@ object AdapterClient extends js.JSApp {
 
   @dom
   private def lastLevel = {
-    val logLevel = lastLogLevel.bind
+    val logLevel = uiState.lastLogLevel.bind
 
     @dom
     def logImage(levelClass: String): Binding[HTMLElement] =
@@ -89,7 +89,9 @@ object AdapterClient extends js.JSApp {
         <input id="filterInput"
                type="text"
                placeholder="Filter..."
-               onkeyup={event: Event => filterText.value = s"${filterInput.value}"}>
+               onkeyup={_: Event =>
+                 dispatch(StoreAction(CHANGE_FILTER_TEXT
+                   , Some(s"${filterInput.value}")))}>
         </input>
       </div>
     </div>
@@ -106,8 +108,9 @@ object AdapterClient extends js.JSApp {
          data:data-position="bottom right">
       <select id="filterSelect"
               class="ui compact dropdown"
-              onchange={event: Event =>
-                filterLevel.value = LogLevel.fromLevel(s"${filterSelect.value}").get}>
+              onchange={_: Event =>
+                dispatch(StoreAction(CHANGE_FILTER_LEVEL
+                  , LogLevel.fromLevel(s"${filterSelect.value}").toOption))}>
         <option value="ERROR">ERROR</option>
         <option value="WARN">WARN</option>
         <option value="INFO">INFO</option>
@@ -118,7 +121,7 @@ object AdapterClient extends js.JSApp {
 
   @dom
   private def runAdapterButton = {
-    val runDisabled = isRunning.bind
+    val runDisabled = uiState.isRunning.bind
 
     <div class="ui item">
       <button class="ui basic icon button"
@@ -135,7 +138,7 @@ object AdapterClient extends js.JSApp {
   private def clearButton = {
     <div class="ui item">
       <button class="ui basic icon button"
-              onclick={_: Event => logData.value.clear()}
+              onclick={_: Event => dispatch(CLEAR_LOG_ENTRIES)}
               data:data-tooltip="Clear the console"
               data:data-position="bottom right">
         <i class="remove circle outline icon large"></i>
@@ -145,9 +148,9 @@ object AdapterClient extends js.JSApp {
 
   @dom
   private def adapterContainer = {
-    val logEntries = logData.bind
-    val text = filterText.bind
-    val level = filterLevel.bind
+    val logEntries = uiState.logData.bind
+    val text = uiState.filterText.bind
+    val level = uiState.filterLevel.bind
     val filteredLE =
       logEntries
         .filter(le => le.level >= level)

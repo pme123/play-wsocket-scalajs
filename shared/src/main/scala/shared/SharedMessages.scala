@@ -28,6 +28,9 @@ case class AdapterNotRunning(logReport: Option[LogReport]) extends AdapterMsg
 // each LogEntry that is created by the AdapterProcess
 case class LogEntryMsg(logEntry: LogEntry) extends AdapterMsg
 
+// sent when the Adapter Process is started
+case object RunStarted extends AdapterMsg
+
 // sent when the Adapter Process finished
 case class RunFinished(logReport: LogReport) extends AdapterMsg
 

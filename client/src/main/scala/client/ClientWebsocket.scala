@@ -1,6 +1,6 @@
 package client
 
-import com.thoughtworks.binding.Binding.{Var, Vars}
+import client.UIStore._
 import org.scalajs.dom.raw._
 import org.scalajs.dom.{document, window}
 import play.api.libs.json.{JsError, JsSuccess, Json}
@@ -8,11 +8,8 @@ import shared._
 
 import scala.scalajs.js.timers.setTimeout
 
-case class ClientWebsocket(logData: Vars[LogEntry]
-                           , isRunning: Var[Boolean]
-                           , filterText: Var[String]
-                           , filterLevel: Var[LogLevel]
-                           , lastLogLevel: Var[Option[LogLevel]]) {
+case class ClientWebsocket(uiState: UIState)
+  extends UIStore {
 
   private lazy val wsURL = s"ws://${window.location.host}/ws"
 
@@ -25,21 +22,21 @@ case class ClientWebsocket(logData: Vars[LogEntry]
         val message = Json.parse(e.data.toString)
         message.validate[AdapterMsg] match {
           case JsSuccess(AdapterRunning(logReport), _) =>
-            println(s"Adapter running")
-            isRunning.value = true
+            changeAdapterRunning(true)
             addLogEntries(logReport)
           case JsSuccess(AdapterNotRunning(logReport), _) =>
-            println(s"Adapter NOT running")
-            isRunning.value = false
-            lastLogLevel.value = logReport.map(_.maxLevel())
-            logReport.foreach(addLogEntries)
+            changeAdapterRunning(false)
+            logReport.foreach { lr =>
+              changeLastLogLevel(lr)
+              addLogEntries(lr)
+            }
           case JsSuccess(LogEntryMsg(le), _) =>
-            isRunning.value = true
             addLogEntry(le)
+          case JsSuccess(RunStarted, _) =>
+            changeAdapterRunning(true)
           case JsSuccess(RunFinished(logReport), _) =>
-            println("Run Finished")
-            isRunning.value = false
-            lastLogLevel.value = Some(logReport.maxLevel())
+            changeAdapterRunning(false)
+            changeLastLogLevel(logReport)
           case JsSuccess(other, _) =>
             println(s"Other message: $other")
           case JsError(errors) =>
@@ -52,7 +49,7 @@ case class ClientWebsocket(logData: Vars[LogEntry]
     }
     socket.onopen = { (e: Event) =>
       println("websocket open!")
-      logData.value.clear()
+      dispatch(CLEAR_LOG_ENTRIES)
     }
     socket.onclose = { (e: CloseEvent) =>
       println("closed socket" + e.reason)
@@ -67,15 +64,20 @@ case class ClientWebsocket(logData: Vars[LogEntry]
     socket.send(Json.toJson(RunAdapter()).toString())
   }
 
-  private def addLogEntries(logReport: LogReport): Unit = {
+  private def changeAdapterRunning(running: Boolean) {
+    dispatch(StoreAction(CHANGE_ADAPTER_RUNNING, Some(running)))
+  }
+
+  private def changeLastLogLevel(logReport: LogReport) {
+    dispatch(StoreAction(CHANGE_LAST_LOG_LEVEL, Some(logReport.maxLevel())))
+  }
+
+  private def addLogEntries(logReport: LogReport) {
     logReport.logEntries.foreach(addLogEntry)
   }
 
-  private def addLogEntry(logEntry: LogEntry): Unit = {
-    logData.value += logEntry
-    logData.value
-      .filter(le => le.level >= filterLevel.value)
-      .filter(le => le.msg.contains(filterText.value))
+  private def addLogEntry(logEntry: LogEntry) {
+    dispatch(StoreAction(ADD_LOG_ENTRY, Some(logEntry)))
 
     val objDiv = document.getElementById("log-panel")
     objDiv.scrollTop = objDiv.scrollHeight - 20
