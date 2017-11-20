@@ -8,9 +8,9 @@ import akka.actor._
 import akka.pattern.ask
 import akka.stream.scaladsl._
 import akka.util.Timeout
-import play.api.{Configuration, Logger}
 import play.api.libs.json._
 import play.api.mvc._
+import play.api.{Configuration, Logger}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -22,6 +22,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class HomeController @Inject()(@Named("userParentActor") userParentActor: ActorRef
                                , cc: ControllerComponents
+                               , template: views.html.index
                                , assetsFinder: AssetsFinder
                                , val config: Configuration)
                               (implicit ec: ExecutionContext)
@@ -32,7 +33,7 @@ class HomeController @Inject()(@Named("userParentActor") userParentActor: ActorR
   // Home page that renders template
   def index = Action { implicit request: Request[AnyContent] =>
     // uses the AssetsFinder API
-    Ok(views.html.index(assetsFinder))
+    Ok(template(assetsFinder))
   }
 
   /**

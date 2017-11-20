@@ -2,132 +2,178 @@ package client
 
 import com.thoughtworks.binding.Binding.{Constants, Var, Vars}
 import com.thoughtworks.binding.{Binding, dom}
+import org.scalajs.dom.document
 import org.scalajs.dom.raw._
-import org.scalajs.dom.{document, window}
-import play.api.libs.json._
+import org.scalajs.jquery.jQuery
 import shared._
 
 import scala.language.implicitConversions
 import scala.scalajs.js
-import scala.scalajs.js.timers.setTimeout
+import scala.scalajs.js.Dynamic.{global => g}
 
 object AdapterClient extends js.JSApp {
 
-  implicit def makeIntellijHappy(x: scala.xml.Elem): Binding[HTMLElement] = ???
-
-  private def runAdapter() {
-    println("run Adapter")
-    socket.send(Json.toJson(RunAdapter()).toString())
-  }
-
   private val logData = Vars[LogEntry]()
   private val isRunning = Var[Boolean](false)
+  private val filterText = Var[String]("")
+  private val filterLevel = Var[LogLevel](LogLevel.DEBUG)
   private val lastLogLevel = Var[Option[LogLevel]](None)
+  private lazy val socket = ClientWebsocket(logData, isRunning, filterText, filterLevel, lastLogLevel)
 
-  private lazy val wsURL = s"ws://${window.location.host}/ws"
-  private var socket: WebSocket = _
-
-  private def connectWS() {
-    socket = new WebSocket(wsURL)
-    socket.onmessage = {
-      (e: MessageEvent) =>
-        val message = Json.parse(e.data.toString)
-        message.validate[AdapterMsg] match {
-          case JsSuccess(AdapterRunning(logReport), _) =>
-            println(s"Adapter running")
-            isRunning.value = true
-            addLogEntries(logReport)
-          case JsSuccess(AdapterNotRunning(logReport), _) =>
-            println(s"Adapter NOT running")
-            isRunning.value = false
-            lastLogLevel.value = logReport.map(_.maxLevel())
-            logReport.foreach(addLogEntries)
-          case JsSuccess(LogEntryMsg(le), _) =>
-            isRunning.value = true
-            addLogEntry(le)
-          case JsSuccess(RunFinished(logReport), _) =>
-            println("Run Finished")
-            isRunning.value = false
-            lastLogLevel.value = Some(logReport.maxLevel())
-          case JsSuccess(other, _) =>
-            println(s"Other message: $other")
-          case JsError(errors) =>
-            errors foreach println
-        }
-    }
-    socket.onerror = { (e: ErrorEvent) =>
-      println(s"exception with websocket: ${e.message}!")
-      socket.close(0, e.message)
-    }
-    socket.onopen = { (e: Event) =>
-      println("websocket open!")
-      logData.value.clear()
-    }
-    socket.onclose = { (e: CloseEvent) =>
-      println("closed socket" + e.reason)
-      setTimeout(1000) {
-        connectWS() // try to reconnect automatically
-      }
-    }
+  def main(): Unit = {
+    dom.render(document.body, render)
+    socket.connectWS() // initial population
+    import SemanticUI.jq2semantic
+    jQuery(".ui.dropdown").dropdown(js.Dynamic.literal(on = "hover"))
   }
 
-  private def addLogEntries(logReport: LogReport): Unit = {
-    logReport.logEntries.foreach(le => logData.value += le)
-
-    val objDiv = document.getElementById("log-panel")
-    objDiv.scrollTop = objDiv.scrollHeight - logReport.logEntries.length * 20
+  @dom
+  private def render = {
+    <div>
+      {adapterHeader.bind}{//
+      adapterContainer.bind}
+    </div>
   }
 
-  private def addLogEntry(logEntry: LogEntry): Unit = {
-    logData.value += logEntry
+  @dom
+  private def adapterHeader = {
+    <div class="ui main fixed borderless menu">
+      <div class="ui item">
+        <img src={"" + g.jsRoutes.controllers.Assets.versioned("images/favicon.png").url}></img>
+      </div>
+      <div class="ui header item">Reactive Adapter Log Demo</div>
+      <div class="right menu">
+        {lastLevel.bind}{//
+        textFilter.bind}{//
+        levelFilter.bind}{//
+        runAdapterButton.bind}{//
+        clearButton.bind}
+      </div>
+    </div>
+  }
 
-    val objDiv = document.getElementById("log-panel")
-    objDiv.scrollTop = objDiv.scrollHeight - 20
+  @dom
+  private def lastLevel = {
+    val logLevel = lastLogLevel.bind
+
+    @dom
+    def logImage(levelClass: String): Binding[HTMLElement] =
+      <i class={"large middle aligned " + levelClass}></i>
+
+    val levelClass: Option[Binding[HTMLElement]] = logLevel
+      .map(SemanticUI.levelClass)
+      .map(logImage)
+
+    @dom
+    def logConstants(levelClass: Option[Binding[HTMLElement]]) =
+      Constants(levelClass.toList: _*)
+        .map(_.bind)
+
+    <div class="ui item">
+      <div class="item"
+           data:data-tooltip={"Log level last Adapter Process: " + logLevel.getOrElse("Not run!")}
+           data:data-position="bottom center">
+        {logConstants(levelClass).bind}
+      </div>
+    </div>
+  }
+
+  // filterInput references to the id of the input (macro magic)
+  // this creates a compile exception in intellij
+  @dom
+  private def textFilter = {
+    <div class="ui item">
+      <div class="ui input"
+           data:data-tooltip="Filter by text."
+           data:data-position="bottom right">
+        <input id="filterInput"
+               type="text"
+               placeholder="Filter..."
+               onkeyup={event: Event => filterText.value = s"${filterInput.value}"}>
+        </input>
+      </div>
+    </div>
+  }
+
+  // filterInput references to the id of the input (macro magic)
+  // this creates a compile exception in intellij
+  @dom
+  private def levelFilter = {
+    implicit def stringToBoolean(str: String): Boolean = str == "true"
+
+    <div class="ui item"
+         data:data-tooltip="Filter the Logs by its Level"
+         data:data-position="bottom right">
+      <select id="filterSelect"
+              class="ui compact dropdown"
+              onchange={event: Event =>
+                filterLevel.value = LogLevel.fromLevel(s"${filterSelect.value}").get}>
+        <option value="ERROR">ERROR</option>
+        <option value="WARN">WARN</option>
+        <option value="INFO">INFO</option>
+        <option value="DEBUG" selected="true">DEBUG</option>
+      </select>
+    </div>
+  }
+
+  @dom
+  private def runAdapterButton = {
+    val runDisabled = isRunning.bind
+
+    <div class="ui item">
+      <button class="ui basic icon button"
+              onclick={_: Event => socket.runAdapter()}
+              disabled={runDisabled}
+              data:data-tooltip="Run the Adapter"
+              data:data-position="bottom right">
+        <i class="toggle right icon large"></i>
+      </button>
+    </div>
+  }
+
+  @dom
+  private def clearButton = {
+    <div class="ui item">
+      <button class="ui basic icon button"
+              onclick={_: Event => logData.value.clear()}
+              data:data-tooltip="Clear the console"
+              data:data-position="bottom right">
+        <i class="remove circle outline icon large"></i>
+      </button>
+    </div>
+  }
+
+  @dom
+  private def adapterContainer = {
+    val logEntries = logData.bind
+    val text = filterText.bind
+    val level = filterLevel.bind
+    val filteredLE =
+      logEntries
+        .filter(le => le.level >= level)
+        .filter(le => le.msg.toLowerCase.contains(text.toLowerCase))
+
+    <div class="ui main text container">
+      <div id="log-panel" class="ui relaxed divided list">
+        {Constants(filteredLE: _*).map(logEntry(_).bind)}
+      </div>
+    </div>
   }
 
   @dom
   private def logEntry(entry: LogEntry) =
-    <div>
-      <div class={s"log-level ${entry.level.toString}"}>
-        {entry.level.toString}
+    <div class="item">
+      <i class={"large middle aligned " + SemanticUI.levelClass(entry.level)}></i>
+      <div class="content">
+        <div class="description">
+          &nbsp;
+        </div>
+        <div class="header">
+          {entry.msg}
+        </div>
       </div>
-      <div class="log-msg">
-        {entry.msg}
-      </div>
     </div>
 
-  @dom
-  private def render = {
-    val runDisabled = isRunning.bind
-    val logLevel = lastLogLevel.bind
-    <div class="main-panel">
-      <div class="button-panel">
-        {lastLevel(logLevel.getOrElse("Not run!").toString).bind}<button onclick={event: Event => runAdapter()} disabled={runDisabled}>
-        Run Adapter
-      </button>
-        <button onclick={event: Event => logData.value.clear()}>
-          Clear Console
-        </button>
-      </div>{renderLogEntries.bind}
-    </div>
-  }
+  implicit def makeIntellijHappy(x: scala.xml.Elem): Binding[HTMLElement] = ???
 
-  @dom
-  private def lastLevel(lastLevel: String) = {
-    <div class={"last-level " + lastLevel}>
-      {"Log level last Adapter Process: " + lastLevel}
-    </div>
-  }
-  @dom
-  private def renderLogEntries = {
-    val logEntries = logData.bind
-    <div id="log-panel">
-      {Constants(logEntries: _*).map(logEntry(_).bind)}
-    </div>
-  }
-
-  def main(): Unit = {
-    dom.render(document.getElementById("adapter-client"), render)
-    connectWS() // initial population
-  }
 }
