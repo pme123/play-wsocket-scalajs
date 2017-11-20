@@ -1,6 +1,5 @@
 package client
 
-import client.UIStore._
 import org.scalajs.dom.raw._
 import org.scalajs.dom.{document, window}
 import play.api.libs.json.{JsError, JsSuccess, Json}
@@ -22,20 +21,20 @@ case class ClientWebsocket(uiState: UIState)
         val message = Json.parse(e.data.toString)
         message.validate[AdapterMsg] match {
           case JsSuccess(AdapterRunning(logReport), _) =>
-            changeAdapterRunning(true)
-            addLogEntries(logReport)
+            changeIsRunning(true)
+            newLogEntries(logReport)
           case JsSuccess(AdapterNotRunning(logReport), _) =>
-            changeAdapterRunning(false)
+            changeIsRunning(false)
             logReport.foreach { lr =>
               changeLastLogLevel(lr)
-              addLogEntries(lr)
+              newLogEntries(lr)
             }
           case JsSuccess(LogEntryMsg(le), _) =>
-            addLogEntry(le)
+            newLogEntry(le)
           case JsSuccess(RunStarted, _) =>
-            changeAdapterRunning(true)
+            changeIsRunning(true)
           case JsSuccess(RunFinished(logReport), _) =>
-            changeAdapterRunning(false)
+            changeIsRunning(false)
             changeLastLogLevel(logReport)
           case JsSuccess(other, _) =>
             println(s"Other message: $other")
@@ -47,9 +46,9 @@ case class ClientWebsocket(uiState: UIState)
       println(s"exception with websocket: ${e.message}!")
       socket.close(0, e.message)
     }
-    socket.onopen = { (e: Event) =>
+    socket.onopen = { (_: Event) =>
       println("websocket open!")
-      append(CLEAR_LOG_ENTRIES)
+      clearLogData()
     }
     socket.onclose = { (e: CloseEvent) =>
       println("closed socket" + e.reason)
@@ -64,20 +63,12 @@ case class ClientWebsocket(uiState: UIState)
     socket.send(Json.toJson(RunAdapter()).toString())
   }
 
-  private def changeAdapterRunning(running: Boolean) {
-    append(StoreAction(CHANGE_ADAPTER_RUNNING, Some(running)))
+  private def newLogEntries(logReport: LogReport) {
+    logReport.logEntries.foreach(newLogEntry)
   }
 
-  private def changeLastLogLevel(logReport: LogReport) {
-    append(StoreAction(CHANGE_LAST_LOG_LEVEL, Some(logReport.maxLevel())))
-  }
-
-  private def addLogEntries(logReport: LogReport) {
-    logReport.logEntries.foreach(addLogEntry)
-  }
-
-  private def addLogEntry(logEntry: LogEntry) {
-    append(StoreAction(ADD_LOG_ENTRY, Some(logEntry)))
+  private def newLogEntry(logEntry: LogEntry) {
+    addLogEntry(logEntry)
 
     val objDiv = document.getElementById("log-panel")
     objDiv.scrollTop = objDiv.scrollHeight - 20

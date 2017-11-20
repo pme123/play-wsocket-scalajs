@@ -1,6 +1,5 @@
 package client
 
-import client.UIStore._
 import com.thoughtworks.binding.Binding.Constants
 import com.thoughtworks.binding.{Binding, dom}
 import org.scalajs.dom.document
@@ -22,7 +21,7 @@ object AdapterClient
 
   def main(): Unit = {
     dom.render(document.body, render)
-    socket.connectWS() // initial population
+    socket.connectWS()
     import SemanticUI.jq2semantic
     jQuery(".ui.dropdown").dropdown(js.Dynamic.literal(on = "hover"))
   }
@@ -90,8 +89,7 @@ object AdapterClient
                type="text"
                placeholder="Filter..."
                onkeyup={_: Event =>
-                 append(StoreAction(CHANGE_FILTER_TEXT
-                   , Some(s"${filterInput.value}")))}>
+                 changeFilterText(s"${filterInput.value}")}>
         </input>
       </div>
     </div>
@@ -109,8 +107,7 @@ object AdapterClient
       <select id="filterSelect"
               class="ui compact dropdown"
               onchange={_: Event =>
-                append(StoreAction(CHANGE_FILTER_LEVEL
-                  , LogLevel.fromLevel(s"${filterSelect.value}").toOption))}>
+                changeFilterLevel(LogLevel.fromLevel(s"${filterSelect.value}").get)}>
         <option value="ERROR">ERROR</option>
         <option value="WARN">WARN</option>
         <option value="INFO">INFO</option>
@@ -138,7 +135,7 @@ object AdapterClient
   private def clearButton = {
     <div class="ui item">
       <button class="ui basic icon button"
-              onclick={_: Event => append(CLEAR_LOG_ENTRIES)}
+              onclick={_: Event => clearLogData()}
               data:data-tooltip="Clear the console"
               data:data-position="bottom right">
         <i class="remove circle outline icon large"></i>
