@@ -24,7 +24,7 @@ or if the process is running - each LogEntry right away.
 
 You can filter the LogEntries for their Level and/ or their message.
 
-![play-wsocket-scalajs](https://user-images.githubusercontent.com/3437927/32768876-ec1a891c-c919-11e7-8a64-ec32a1cdc1cc.gif)
+![play-wsocket-scalajs](https://user-images.githubusercontent.com/3437927/33009370-eb51c8b2-cdd6-11e7-8753-383eebbcc191.gif)
 
 # Architecture
 - Server: Play with Scala
@@ -98,7 +98,8 @@ It is more or less HTML-snippets that contain dynamic content provided by `Bindi
 If you have troubles understanding it, please check out [Binding.scala-Google-Maps](https://github.com/pme123/Binding.scala-Google-Maps), where I explained all the details.
 
 #### ScalaJS Routes
-To use Play routes from within the client, we need again something to do:
+To use Play routes from within the client, we need again something to do.
+My solution is taken from here: [github.com/vmunier/play-scalajs.g8](https://github.com/vmunier/play-scalajs.g8/issues/50)
 
 * build.sbt
 ```scala
