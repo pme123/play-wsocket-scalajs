@@ -8,12 +8,12 @@ import UIStore._
 trait UIStore {
   def uiState: UIState
 
-  def dispatch(actionType: ActionType) {
-    dispatch(StoreAction(actionType))
+  def append(actionType: ActionType) {
+    append(StoreAction(actionType))
   }
 
-  def dispatch(action: StoreAction) {
-    println(s"Dispatched: $action")
+  def append(action: StoreAction) {
+    println(s"Append: $action")
     handleLogData(action)
     handleFilterText(action)
     handleFilterLevel(action)
