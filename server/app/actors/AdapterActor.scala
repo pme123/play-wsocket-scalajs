@@ -67,6 +67,7 @@ class AdapterActor @Inject()(implicit mat: Materializer, ec: ExecutionContext)
     logService = LogService("Demo Adapter Process", user)
     isRunning = true
     Future {
+      sendToSubscriber(RunStarted)
       sendToSubscriber(logService.startLogging())
       for (i <- 0 to 10) {
         Thread.sleep(750)
