@@ -70,6 +70,9 @@ case class AdapterNotRunning(logReport: Option[LogReport]) extends AdapterMsg
 // each LogEntry that is created by the AdapterProcess
 case class LogEntryMsg(logEntry: LogEntry) extends AdapterMsg
 
+// sent when the Adapter Process is started
+case object RunStarted extends AdapterMsg
+
 // sent when the Adapter Process finished
 case class RunFinished(logReport: LogReport) extends AdapterMsg
 
@@ -87,7 +90,8 @@ The client is split in 3 classes:
 ### AdapterClient
 The whole web page is here composed with `Binding.scala data-binding expressions`. 
 
-It is more or less HTML-snippets that contain dynamic content provided by `Binding.scala data sources`:
+It is more or less HTML-snippets that contain dynamic content provided by `Binding.scala data sources`.
+They are encapsulated in the **UIState**:
 
 * `logData: Vars[LogEntry]` a list of LogEntries that from the active- or last Adapter run.
 * `isRunning: Var[Boolean]` is true if the Adapter process is running at the moment.
@@ -112,6 +116,16 @@ My solution is taken from here: [github.com/vmunier/play-scalajs.g8](https://git
 * add to the end of the `routes`-file `->         /webjars                      webjars.Routes`
 * now you can use them like `<img src={"" + g.jsRoutes.controllers.Assets.versioned("images/favicon.png").url}></img>`
 Don't forget `import scala.scalajs.js.Dynamic.{global => g}` 
+
+### UIStore
+I like the concepts of Redux. 
+However with `Binding.scala` most of the patterns are obsolete.
+What I wanted to achieve was to manipulate the UIState in just one place.
+My solution (for now) is to have a UIStore trait, that provides for each manipulation-action
+a function.
+To have a general reducer seems to be an unnecessary overhead and even worse 
+the payload is not type safe.
+
 ### ClientWebsocket
 Encapsulates the communication with the server. The internal communication with the AdapterClient
 is done via the `Binding.scala data sources`.
@@ -207,3 +221,14 @@ $ sbt
 > run
 ```
 open [http://localhost:9000](http://localhost:9000) in a browser.
+
+# This is the end;)
+
+Please create an issue, if you...
+ 
+* have some suggestions
+* find a bug
+* don't understand a part
+* have a question
+
+ 
