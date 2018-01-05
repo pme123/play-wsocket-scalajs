@@ -23,7 +23,7 @@
     </script>
 </head>
 <body>
-    @scalajs.html.scripts("client",
+    @scalajs.html.scripts("play-wsocket-scalajs-client",
         routes.Assets.at(_).toString,
         name => getClass.getResource(s"/public/$name") != null)
 

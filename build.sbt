@@ -1,13 +1,33 @@
 // (5) shadow sbt-scalajs' crossProject and CrossType until Scala.js 1.0.0 is released
 import sbtcrossproject.{crossProject, CrossType}
 
+lazy val orgId = "pme123"
+lazy val orgName = "pme123 Enterprises;)"
+lazy val orgHomepage = Some(new URL("http://screenFOODnet.com"))
+lazy val projectName = "play-wsocket-scalajs"
+lazy val projectV = "0.0.1"
 lazy val scalaV = "2.12.3"
 lazy val jQueryV = "2.2.4"
 lazy val semanticV = "2.2.10"
 
+lazy val wSocket = project.in(file(".")).
+  aggregate(sharedJvm, sharedJs, server, client).
+  settings(
+    organization := orgId
+    , organizationName := orgName
+    , organizationHomepage := orgHomepage
+    , publish := {}
+    , publishLocal := {}
+    , run := {
+      (run in server in Compile).evaluated
+    }
+  )
+
 lazy val server = (project in file("server")).settings(
-  scalaVersion := scalaV,
-  scalaJSProjects := Seq(client),
+  scalaVersion := scalaV
+  , name := s"$projectName-server"
+  , version := projectV
+  , scalaJSProjects := Seq(client),
   pipelineStages in Assets := Seq(scalaJSPipeline),
   pipelineStages := Seq(digest, gzip),
   // triggers scalaJSPipeline when using compile or continuous compilation
@@ -36,34 +56,40 @@ lazy val server = (project in file("server")).settings(
 ).enablePlugins(PlayScala)
   .dependsOn(sharedJvm)
 
-lazy val client = (project in file("client")).settings(
-  scalaVersion := scalaV,
-  scalaJSUseMainModuleInitializer := true,
-  scalacOptions ++= Seq("-Xmax-classfile-name","78"),
-  scalaJSUseMainModuleInitializer in Test := false,
-  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
-  jsDependencies ++= Seq(
-    "org.webjars" % "jquery" % jQueryV / "jquery.js" minified "jquery.min.js",
-    "org.webjars" % "Semantic-UI" % semanticV / "semantic.js" minified "semantic.min.js" dependsOn "jquery.js"
-  ),
-  libraryDependencies ++= Seq(
-    "org.scala-js" %%% "scalajs-dom" % "0.9.3",
-    "org.scala-lang.modules" %% "scala-xml" % "1.0.6",
-    "com.typesafe.play" %%% "play-json" % "2.6.1",
-    "com.thoughtworks.binding" %%% "dom" % "11.0.0-M4",
-    "com.thoughtworks.binding" %%% "futurebinding" % "11.0.0-M4",
-    "fr.hmil" %%% "roshttp" % "2.0.2",
-    // java.time supprot for ScalaJS
-    "org.scala-js" %%% "scalajs-java-time" % "0.2.2",
-    // jquery support for ScalaJS
-    "be.doeraene" %%% "scalajs-jquery" % "0.9.1"
-  )
-).enablePlugins(ScalaJSWeb).
+lazy val client = (project in file("client"))
+  .settings(
+    scalaVersion := scalaV
+    , name := s"$projectName-client"
+    , version := projectV
+    , scalaJSUseMainModuleInitializer := true,
+    scalacOptions ++= Seq("-Xmax-classfile-name", "78"),
+    scalaJSUseMainModuleInitializer in Test := false,
+    addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
+    jsDependencies ++= Seq(
+      "org.webjars" % "jquery" % jQueryV / "jquery.js" minified "jquery.min.js",
+      "org.webjars" % "Semantic-UI" % semanticV / "semantic.js" minified "semantic.min.js" dependsOn "jquery.js"
+    ),
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % "0.9.3",
+      "org.scala-lang.modules" %% "scala-xml" % "1.0.6",
+      "com.typesafe.play" %%% "play-json" % "2.6.1",
+      "com.thoughtworks.binding" %%% "dom" % "11.0.0-M4",
+      "com.thoughtworks.binding" %%% "futurebinding" % "11.0.0-M4",
+      "fr.hmil" %%% "roshttp" % "2.0.2",
+      // java.time supprot for ScalaJS
+      "org.scala-js" %%% "scalajs-java-time" % "0.2.2",
+      // jquery support for ScalaJS
+      "be.doeraene" %%% "scalajs-jquery" % "0.9.1"
+    )
+  ).enablePlugins(ScalaJSWeb).
   dependsOn(sharedJs)
 
 lazy val shared = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Pure)
-  .settings(scalaVersion := scalaV
+  .settings(
+    scalaVersion := scalaV
+    , name := projectName
+    , version := projectV
     , libraryDependencies ++= Seq(
       "org.julienrf" %%% "play-json-derived-codecs" % "4.0.0"
       // logging lib that also works with ScalaJS
@@ -77,4 +103,4 @@ lazy val sharedJvm = shared.jvm
 lazy val sharedJs = shared.js
 
 // loads the server project at sbt startup
-onLoad in Global := (Command.process("project server", _: State)) compose (onLoad in Global).value
+//onLoad in Global := (Command.process("project server", _: State)) compose (onLoad in Global).value
